@@ -6,6 +6,7 @@ Ortak üst/alt bilgi, hizmet listesi ve ilçe listesi tek yerde durur;
 """
 import html
 import json
+import random
 from pathlib import Path
 from urllib.parse import quote
 
@@ -16,7 +17,7 @@ PHONE_TEL = "+905321205338"
 WA_NUMBER = "905321205338"
 EMAIL = "info@ohtemizlik.com"
 ARMUT_PDF = "https://s3.eu-central-1.amazonaws.com/prokit-materials/live/50714e292cb1916131ade2221dec7c2d.pdf"
-VERSION = "1"
+VERSION = "2"
 
 
 def wa(msg="Merhaba, temizlik hizmeti için teklif almak istiyorum."):
@@ -45,11 +46,10 @@ _P = {
     "check": '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     "phone": '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/>',
     "mail": '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',
-    "pin": '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',
     "doc": '<path d="M7 3h7l5 5v13H7Z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h4"/>',
     "menu": '<path d="M4 7h16M4 12h16M4 17h16"/>',
     "map": '<path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6Z"/><path d="M9 4v14M15 6v14"/>',
-    "chat": '<path d="M4 5h16v11H9l-5 4Z"/><path d="M8 9.5h8M8 12.5h5"/>',
+    "hand": '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12"/><path d="M11 11.5v-1a1.5 1.5 0 0 1 3 0V12"/><path d="M14 11.5a1.5 1.5 0 0 1 3 0V13"/><path d="M17 12.5a1.5 1.5 0 0 1 3 0V16a5 5 0 0 1-5 5h-2.5a5 5 0 0 1-4-2l-3.3-4.4a1.5 1.5 0 0 1 2.3-1.9L8 14"/>',
 }
 _WA = ('<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.08-.3-.15-1.26-.46-2.39-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.91-2.2-.25-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.18-1.42-.08-.12-.27-.2-.57-.34m-5.42 7.4h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88m8.41-18.3A11.82 11.82 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89a11.82 11.82 0 0 0-3.48-8.41Z"/></svg>')
 
@@ -61,12 +61,12 @@ def icon(name):
             f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{_P[name]}</svg>')
 
 
-LOGO = ('<svg viewBox="0 0 48 48" aria-hidden="true">'
-        '<rect width="48" height="48" rx="13" fill="#0f6e6a"/>'
-        '<path d="M11 24c5 10 21 10 26 0" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>'
-        '<path d="M33 8.5l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6Z" fill="#f4c84a"/>'
-        '<path d="M15 13.5l.9 2.2 2.2.9-2.2.9-.9 2.2-.9-2.2-2.2-.9 2.2-.9Z" fill="#f4c84a"/>'
-        '</svg>')
+LOGO = (ROOT / "assets/img/logo-inline.svg").read_text(encoding="utf-8").strip()
+
+
+def logo(light=False):
+    return LOGO.replace('class="logo"', 'class="logo logo-light"') if light else LOGO
+
 
 # ---------------------------------------------------------------- içerik
 GROUPS = [
@@ -168,20 +168,21 @@ NAV = [
 
 
 # ---------------------------------------------------------------- parçalar
-def head(title, description, path, extra_schema=None):
+def head(title, description, path, extra_schema=None, noindex=False):
     canonical = f"{SITE_URL}/{path}" if path else f"{SITE_URL}/"
     schemas = [BUSINESS_SCHEMA] + (extra_schema or [])
     ld = "\n".join(
         f'<script type="application/ld+json">{json.dumps(s, ensure_ascii=False)}</script>' for s in schemas)
+    robots = '<meta name="robots" content="noindex">\n' if noindex else ""
     return f"""<!doctype html>
 <html lang="tr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{esc(title)}</title>
+{robots}<title>{esc(title)}</title>
 <meta name="description" content="{esc(description)}">
 <link rel="canonical" href="{canonical}">
-<meta name="theme-color" content="#0f6e6a">
+<meta name="theme-color" content="#1e2bd8">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
@@ -193,8 +194,7 @@ def head(title, description, path, extra_schema=None):
 <meta property="og:url" content="{canonical}">
 <meta property="og:image" content="{SITE_URL}/assets/img/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preload" href="/assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/style.css?v={VERSION}">
 {ld}
 </head>
@@ -209,14 +209,14 @@ def header(active):
         for href, label in NAV)
     return f"""<header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="/" aria-label="OH Temizlik ana sayfa">{LOGO}<span class="brand-name">OH Temizlik<small>İstanbul temizlik hizmetleri</small></span></a>
+    <a class="brand" href="/" aria-label="OH Temizlik ana sayfa">{logo()}</a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menüyü aç">{icon("menu")}</button>
     <nav class="nav" id="site-nav" aria-label="Ana menü">
       <ul>
 {items}
       </ul>
     </nav>
-    <a class="btn btn-primary header-call" href="tel:{PHONE_TEL}">{icon("phone")}{PHONE_DISPLAY}</a>
+    <a class="btn btn-civit header-call" href="tel:{PHONE_TEL}">{icon("phone")}{PHONE_DISPLAY}</a>
   </div>
 </header>
 <main id="icerik">
@@ -224,20 +224,19 @@ def header(active):
 
 
 def footer():
-    svc_links = "\n".join(
-        f'<li><a href="/hizmetler.html#{g["id"]}">{g["title"]}</a></li>' for g in GROUPS)
+    svc_links = "\n".join(f'<li><a href="/hizmetler.html#{g["id"]}">{g["title"]}</a></li>' for g in GROUPS)
     nav_links = "\n".join(f'<li><a href="/{h}">{l}</a></li>' for h, l in NAV)
     return f"""</main>
 <footer class="site-footer">
-  <div class="wrap footer-grid">
+  <div class="wrap footer-top">
     <div>
-      <a class="brand" href="/">{LOGO}<span class="brand-name">OH Temizlik<small>Temizliğin ferahlığı, içiniz rahat.</small></span></a>
-      <p>İstanbul'un 39 ilçesinde ev, işyeri ve proje temizliği.</p>
+      {logo(light=True)}
+      <p class="footer-slogan">Temizliğin ferahlığı, içiniz rahat.</p>
     </div>
     <div>
       <h2>Sayfalar</h2>
       <ul>
-<li><a href="/">Ana sayfa</a></li>
+        <li><a href="/">Ana sayfa</a></li>
 {nav_links}
       </ul>
     </div>
@@ -247,9 +246,9 @@ def footer():
         <li><a href="tel:{PHONE_TEL}">{PHONE_DISPLAY}</a></li>
         <li><a href="{wa()}" target="_blank" rel="noopener">WhatsApp'tan yazın</a></li>
         <li><a href="mailto:{EMAIL}">{EMAIL}</a></li>
-        <li>Hizmet alanı: İstanbul geneli</li>
+        <li>İstanbul'un 39 ilçesi</li>
       </ul>
-      <h2 style="margin-top:1.5rem">Hizmetler</h2>
+      <h2 style="margin-top:1.75rem">Hizmetler</h2>
       <ul>
 {svc_links}
       </ul>
@@ -257,11 +256,11 @@ def footer():
   </div>
   <div class="wrap footer-bottom">
     <span>© <span data-year>2026</span> OH Temizlik. Tüm hakları saklıdır.</span>
-    <span>Temizliğin ferahlığı, içiniz rahat.</span>
+    <span>İstanbul</span>
   </div>
 </footer>
 <div class="mobile-bar" aria-label="Hızlı iletişim">
-  <a class="btn btn-primary" href="tel:{PHONE_TEL}">{icon("phone")}Ara</a>
+  <a class="btn btn-civit" href="tel:{PHONE_TEL}">{icon("phone")}Ara</a>
   <a class="btn btn-wa" href="{wa()}" target="_blank" rel="noopener">{icon("wa")}WhatsApp</a>
 </div>
 <script src="/assets/js/main.js?v={VERSION}" defer></script>
@@ -270,8 +269,8 @@ def footer():
 """
 
 
-def quote_form(heading="Ücretsiz teklif alın", sub="Bilgileri seçin, mesajınız WhatsApp'ta hazır açılsın.",
-               fid="teklif", h_tag="h2"):
+def quote_form(heading="Ücretsiz teklif alın", sub="Seçimlerinizle mesajınız WhatsApp'ta hazır açılır.",
+               fid="teklif", h_tag="h3"):
     svc_opts = "\n".join(
         f'<optgroup label="{g["title"]}">' + "".join(
             f'<option value="{esc(s[1])}">{esc(s[1])}</option>' for s in g["services"]) + "</optgroup>"
@@ -313,14 +312,10 @@ def quote_form(heading="Ücretsiz teklif alın", sub="Bilgileri seçin, mesajın
 </form>"""
 
 
-def crumbs(label):
-    return f"""<nav class="crumbs" aria-label="Sayfa konumu"><ol><li><a href="/">Ana sayfa</a></li><li aria-current="page">{label}</li></ol></nav>"""
-
-
 def page_head(label, h1, lead):
     return f"""<section class="page-head">
   <div class="wrap">
-    {crumbs(label)}
+    <nav class="crumbs" aria-label="Sayfa konumu"><ol><li><a href="/">Ana sayfa</a></li><li aria-current="page">{label}</li></ol></nav>
     <h1>{h1}</h1>
     <p class="lead">{lead}</p>
   </div>
@@ -328,27 +323,56 @@ def page_head(label, h1, lead):
 """
 
 
+def bubbles(seed=7, count=14):
+    rnd = random.Random(seed)
+    out = []
+    for _ in range(count):
+        size = rnd.choice([18, 24, 30, 40, 52, 64, 80])
+        left = rnd.uniform(48, 98)
+        dur = rnd.uniform(9, 18)
+        delay = -rnd.uniform(0, 18)
+        out.append(f'<span style="left:{left:.1f}%;width:{size}px;height:{size}px;'
+                   f'animation-duration:{dur:.1f}s;animation-delay:{delay:.1f}s"></span>')
+    return '<div class="bubbles" aria-hidden="true">' + "".join(out) + "</div>"
+
+
 def cta_band(title="Temizlik ihtiyacınızı konuşalım",
              text="Alanı ve istediğiniz hizmeti anlatın, ücretsiz teklifinizi hazırlayalım."):
     return f"""<section class="cta-band">
+  {bubbles()}
   <div class="wrap">
-    <div>
-      <h2>{title}</h2>
-      <p>{text}</p>
-    </div>
+    <h2>{title}</h2>
+    <p>{text}</p>
     <div class="btn-row">
-      <a class="btn btn-wa" href="{wa()}" target="_blank" rel="noopener">{icon("wa")}WhatsApp'tan yazın</a>
-      <a class="btn btn-light" href="tel:{PHONE_TEL}">{icon("phone")}{PHONE_DISPLAY}</a>
+      <a class="btn btn-civit" href="{wa()}" target="_blank" rel="noopener">{icon("wa")}WhatsApp'tan yazın</a>
+      <a class="btn btn-line" href="tel:{PHONE_TEL}">{icon("phone")}{PHONE_DISPLAY}</a>
     </div>
   </div>
 </section>
 """
 
 
-def district_links(names):
+def district_cloud(names):
     return "\n".join(
         f'<li><a href="{wa(f"Merhaba, {d} için temizlik teklifi almak istiyorum.")}" target="_blank" rel="noopener">{d}</a></li>'
         for d in names)
+
+
+def districts_block():
+    return f"""<div class="districts">
+      <div class="side">
+        <h3>Avrupa Yakası <span>{len(EUROPE)} ilçe</span></h3>
+        <ul class="district-cloud">
+{district_cloud(EUROPE)}
+        </ul>
+      </div>
+      <div class="side">
+        <h3>Anadolu Yakası <span>{len(ANATOLIA)} ilçe</span></h3>
+        <ul class="district-cloud">
+{district_cloud(ANATOLIA)}
+        </ul>
+      </div>
+    </div>"""
 
 
 def doc_block():
@@ -358,7 +382,7 @@ def doc_block():
     <h3>Armut hizmet veren belgesi</h3>
     <p>OH Temizlik, Armut platformunda kayıtlı hizmet verendir. Belgeyi açıp inceleyebilirsiniz.</p>
   </div>
-  <a class="btn btn-ghost" href="{ARMUT_PDF}" target="_blank" rel="noopener">Belgeyi aç (PDF)</a>
+  <a class="btn btn-line" href="{ARMUT_PDF}" target="_blank" rel="noopener">Belgeyi açın (PDF)</a>
 </div>"""
 
 
@@ -388,76 +412,66 @@ BUSINESS_SCHEMA = {
 
 
 def faq_schema():
-    return {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-            {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in FAQ],
-    }
+    return {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+        {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in FAQ]}
 
 
 def breadcrumb_schema(label, path):
-    return {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-            {"@type": "ListItem", "position": 1, "name": "Ana sayfa", "item": f"{SITE_URL}/"},
-            {"@type": "ListItem", "position": 2, "name": label, "item": f"{SITE_URL}/{path}"},
-        ],
-    }
+    return {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Ana sayfa", "item": f"{SITE_URL}/"},
+        {"@type": "ListItem", "position": 2, "name": label, "item": f"{SITE_URL}/{path}"}]}
 
 
 # ---------------------------------------------------------------- sayfalar
 def page_index():
     groups = []
     for g in GROUPS:
-        items = "\n".join(
-            f'<li><a href="/hizmetler.html#{s[0]}">{icon(s[2])}{s[1]}</a></li>' for s in g["services"])
-        groups.append(f"""<div class="group">
-      <h3>{g["title"]}</h3>
-      <p>{g["intro"]}</p>
-      <ul class="svc-list">
-{items}
+        rows = "\n".join(
+            f'<li><a href="/hizmetler.html#{s[0]}">{icon(s[2])}<span>{s[1]}</span><span class="go">Ayrıntılar</span></a></li>'
+            for s in g["services"])
+        groups.append(f"""<div>
+      <h3 class="svc-group-title">{g["title"]} <span>{len(g["services"])} hizmet</span></h3>
+      <ul class="svc-rows">
+{rows}
       </ul>
     </div>""")
+    ticker_items = "".join(f"<li>{s[1]}</li>" for s in ALL_SERVICES)
     faq = "\n".join(f"<details><summary>{q}</summary><p>{a}</p></details>" for q, a in FAQ)
 
     body = f"""<section class="hero">
-  <svg class="hero-wipe" viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <path d="M-120 520 C 260 160, 620 120, 900 300 S 1380 520, 1600 180"/>
-  </svg>
   <div class="wrap hero-inner">
-    <div>
-      <h1>İstanbul'da profesyonel ve güvenilir temizlik</h1>
-      <p class="lead">Ev, villa ve apartmanlardan ofis, mağaza, kafe ve kliniklere kadar her alan için titiz, planlı ve zamanında temizlik.</p>
-      <div class="btn-row">
-        <a class="btn btn-wa" href="{wa()}" target="_blank" rel="noopener">{icon("wa")}WhatsApp'tan teklif alın</a>
-        <a class="btn btn-ghost" href="tel:{PHONE_TEL}">{icon("phone")}Hemen arayın</a>
-      </div>
-      <ul class="hero-points">
-        <li>{icon("check")}Ücretsiz teklif</li>
-        <li>{icon("check")}İstanbul'un 39 ilçesi</li>
-        <li>{icon("check")}Armut belgeli hizmet veren</li>
-      </ul>
+    <h1>
+      <span class="glass" data-glass><span class="mega">Oh, tertemiz.</span></span>
+      <span class="h1-sub">İstanbul'da profesyonel temizlik hizmeti</span>
+    </h1>
+    <p class="glass-hint">{icon("hand")}Buğulu camı parmağınızla silin</p>
+    <p class="lead">Ev, villa ve apartmanlardan ofis, mağaza, kafe ve kliniklere kadar her alanı titizlikle, planlı ve zamanında temizliyoruz.</p>
+    <div class="btn-row">
+      <a class="btn btn-lemon" href="{wa()}" target="_blank" rel="noopener">{icon("wa")}WhatsApp'tan teklif alın</a>
+      <a class="btn btn-line" href="tel:{PHONE_TEL}">{icon("phone")}{PHONE_DISPLAY}</a>
     </div>
-    {quote_form()}
+    <ul class="hero-facts">
+      <li>{icon("check")}Ücretsiz teklif</li>
+      <li>{icon("check")}İstanbul'un 39 ilçesi</li>
+      <li>{icon("check")}Armut belgeli hizmet veren</li>
+    </ul>
   </div>
 </section>
+<div class="ticker" aria-hidden="true"><div class="ticker-track"><ul>{ticker_items}</ul><ul>{ticker_items}</ul></div></div>
 
 <section class="section" aria-labelledby="hizmetler-baslik">
   <div class="wrap">
     <div class="section-head">
-      <h2 id="hizmetler-baslik">Her alan için temizlik</h2>
-      <p>Evinizden işyerinize, inşaat sonrasından fuar standına kadar 13 farklı hizmet.</p>
+      <h2 id="hizmetler-baslik">Neresi olursa olsun, temiz teslim</h2>
+      <p>Evinizden işyerinize, inşaat sonrasından fuar standına kadar 13 hizmet.</p>
     </div>
-    <div class="groups">
+    <div class="svc-groups">
 {chr(10).join(groups)}
     </div>
-    <p style="margin-top:2rem"><a class="btn btn-ghost" href="/hizmetler.html">Tüm hizmetlerin ayrıntıları</a></p>
   </div>
 </section>
 
-<section class="section section-alt" aria-labelledby="surec-baslik">
+<section class="section tint" aria-labelledby="surec-baslik">
   <div class="wrap">
     <div class="section-head">
       <h2 id="surec-baslik">Teklif almak üç adım</h2>
@@ -477,34 +491,26 @@ def page_index():
       <h2 id="bolge-baslik">İstanbul'un iki yakasında</h2>
       <p>İlçenize dokunun, teklif mesajınız WhatsApp'ta hazır açılsın.</p>
     </div>
-    <div class="areas">
-      <div class="area">
-        <h3>Avrupa Yakası <span>{len(EUROPE)} ilçe</span></h3>
-        <ul class="district-list">
-{district_links(EUROPE)}
-        </ul>
-      </div>
-      <div class="area">
-        <h3>Anadolu Yakası <span>{len(ANATOLIA)} ilçe</span></h3>
-        <ul class="district-list">
-{district_links(ANATOLIA)}
-        </ul>
-      </div>
-    </div>
+    {districts_block()}
   </div>
 </section>
 
-<section class="section section-alt" aria-labelledby="sss-baslik">
-  <div class="wrap">
-    <div class="section-head">
-      <h2 id="sss-baslik">Sık sorulan sorular</h2>
-    </div>
-    <div class="faq">
+<section class="section tint" aria-labelledby="teklif-baslik">
+  <div class="wrap quote-wrap">
+    <div>
+      <h2 id="teklif-baslik">Teklifiniz bir mesaj uzağınızda</h2>
+      <p class="lead soft">Hizmeti ve ilçeyi seçin, isterseniz alan hakkında kısa bir not ekleyin. Mesajınız WhatsApp'ta hazır açılır, siz sadece gönderirsiniz.</p>
+      <div class="faq" style="margin-top:2.5rem">
 {faq}
+      </div>
     </div>
-    <div style="margin-top:2.5rem">
+    {quote_form()}
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
 {doc_block()}
-    </div>
   </div>
 </section>
 {cta_band()}"""
@@ -521,7 +527,7 @@ def page_services():
         for sid, name, ic, desc, bullets in g["services"]:
             lis = "".join(f"<li>{b}</li>" for b in bullets)
             rows.append(f"""<article class="svc" id="{sid}">
-      <div class="svc-icon">{ic and icon(ic)}</div>
+      <div class="svc-icon">{icon(ic)}</div>
       <div>
         <h3>{name}</h3>
         <p>{desc}</p>
@@ -531,10 +537,9 @@ def page_services():
     </article>""")
         sections.append(f"""<section class="svc-section" id="{g["id"]}" aria-labelledby="{g["id"]}-baslik">
     <h2 id="{g["id"]}-baslik">{g["title"]}</h2>
-    <p class="muted">{g["intro"]}</p>
+    <p class="soft">{g["intro"]}</p>
 {chr(10).join(rows)}
   </section>""")
-    # eski bağlantılar için uyumluluk (#ofis-temizligi zaten var)
     body = page_head("Hizmetler", "Temizlik hizmetlerimiz",
                      "Yaşam alanları, işyerleri ve özel projeler için 13 hizmet. Her biri için ücretsiz teklif alabilirsiniz.") + f"""
 <div class="section">
@@ -551,7 +556,7 @@ def page_services():
 
 
 def page_areas():
-    body = page_head("Hizmet bölgeleri", "İstanbul'un tüm ilçelerinde hizmet",
+    body = page_head("Hizmet bölgeleri", "İstanbul'un tüm ilçelerinde",
                      f"Avrupa Yakası'nda {len(EUROPE)}, Anadolu Yakası'nda {len(ANATOLIA)} ilçe olmak üzere İstanbul'un "
                      "39 ilçesinin tamamına hizmet veriyoruz.") + f"""
 <section class="section" aria-labelledby="ilceler-baslik">
@@ -560,28 +565,15 @@ def page_areas():
       <h2 id="ilceler-baslik">İlçenizi seçin</h2>
       <p>İlçenize dokunduğunuzda teklif mesajınız WhatsApp'ta hazır açılır.</p>
     </div>
-    <div class="areas">
-      <div class="area">
-        <h3>Avrupa Yakası <span>{len(EUROPE)} ilçe</span></h3>
-        <ul class="district-list">
-{district_links(EUROPE)}
-        </ul>
-      </div>
-      <div class="area">
-        <h3>Anadolu Yakası <span>{len(ANATOLIA)} ilçe</span></h3>
-        <ul class="district-list">
-{district_links(ANATOLIA)}
-        </ul>
-      </div>
-    </div>
+    {districts_block()}
   </div>
 </section>
-<section class="section section-alt">
-  <div class="wrap cols">
+<section class="section tint">
+  <div class="wrap quote-wrap">
     <div>
       <h2>Planlama nasıl yapılıyor?</h2>
-      <p>Ekip ve ekipman planlamasını adresinize, alanın büyüklüğüne ve hizmet türüne göre yapıyoruz. Teklif aşamasında ilçenizi ve tercih ettiğiniz tarihi belirtmeniz yeterli.</p>
-      <p>Adalar gibi ulaşımı farklı planlanan bölgeler için tarih ve saat seçeneklerini ayrıca konuşuyoruz.</p>
+      <p class="lead soft">Ekip ve ekipman planlamasını adresinize, alanın büyüklüğüne ve hizmet türüne göre yapıyoruz. Teklif aşamasında ilçenizi ve tercih ettiğiniz tarihi belirtmeniz yeterli.</p>
+      <p class="soft">Adalar gibi ulaşımı farklı planlanan bölgeler için tarih ve saat seçeneklerini ayrıca konuşuyoruz.</p>
     </div>
     {quote_form("İlçeniz için teklif alın", "Hizmeti ve ilçeyi seçin, mesajınız WhatsApp'ta hazır açılsın.", "teklif-bolge")}
   </div>
@@ -595,28 +587,23 @@ def page_areas():
 
 
 def page_refs():
-    sectors = [
-        ("home", "Ev, villa ve apartmanlar"),
-        ("briefcase", "Ofisler ve işyerleri"),
-        ("cup", "Kafe ve restoranlar"),
-        ("cross", "Eczane ve klinikler"),
-        ("hardhat", "İnşaat ve tadilat projeleri"),
-        ("booth", "Fuar ve stant alanları"),
-    ]
-    items = "\n".join(f'<li>{icon(i)}<span>{t}</span></li>' for i, t in sectors)
-    body = page_head("Referanslar", "Belgelerimiz ve hizmet verdiğimiz alanlar",
+    sectors = [("home", "Ev, villa ve apartmanlar"), ("briefcase", "Ofisler ve işyerleri"),
+               ("cup", "Kafe ve restoranlar"), ("cross", "Eczane ve klinikler"),
+               ("hardhat", "İnşaat ve tadilat projeleri"), ("booth", "Fuar ve stant alanları")]
+    items = "\n".join(f'<li>{icon(i)}<strong>{t}</strong></li>' for i, t in sectors)
+    body = page_head("Referanslar", "Belgelerimiz ve çalıştığımız alanlar",
                      "OH Temizlik, Armut platformunda kayıtlı hizmet verendir. Belgemizi aşağıdan inceleyebilirsiniz.") + f"""
 <section class="section">
   <div class="wrap">
 {doc_block()}
   </div>
 </section>
-<section class="section section-alt" aria-labelledby="alanlar-baslik">
+<section class="section tint" aria-labelledby="alanlar-baslik">
   <div class="wrap cols">
     <div>
       <h2 id="alanlar-baslik">Hizmet verdiğimiz alanlar</h2>
-      <p>Yaşam alanlarından işyerlerine ve proje temizliğine kadar farklı ölçekte işler üstleniyoruz. Benzer bir iş için örnek ve ayrıntı isterseniz bize yazın.</p>
-      <a class="btn btn-wa" href="{wa("Merhaba, yaptığınız işlerle ilgili bilgi almak istiyorum.")}" target="_blank" rel="noopener">{icon("wa")}Örnek işleri sorun</a>
+      <p class="lead soft">Yaşam alanlarından işyerlerine ve proje temizliğine kadar farklı ölçekte işler üstleniyoruz. Benzer bir iş için örnek ve ayrıntı isterseniz bize yazın.</p>
+      <a class="btn btn-civit" href="{wa("Merhaba, yaptığınız işlerle ilgili bilgi almak istiyorum.")}" target="_blank" rel="noopener">{icon("wa")}Örnek işleri sorun</a>
     </div>
     <ul class="check-list">
 {items}
@@ -637,9 +624,9 @@ def page_about():
         ("Alana uygun ekip ve ekipman", "Ev temizliğinden makineli zemin yıkamaya kadar her iş için uygun malzemeyi getiririz."),
         ("Ulaşılabilir kalırız", "Teklif, planlama ve hizmet günü boyunca telefon ve WhatsApp'tan bize doğrudan ulaşırsınız."),
     ]
-    items = "\n".join(f'<li>{icon("check")}<div><strong>{t}</strong><br><span class="muted">{d}</span></div></li>'
+    items = "\n".join(f'<li>{icon("check")}<div><strong>{t}</strong><br><span class="soft">{d}</span></div></li>'
                       for t, d in principles)
-    body = page_head("Hakkımızda", "Temizlikte özenli ve anlaşılır hizmet",
+    body = page_head("Hakkımızda", "Özenli ve anlaşılır temizlik",
                      "OH Temizlik, İstanbul genelinde ev, işyeri ve proje temizliği yapan bir temizlik firmasıdır.") + f"""
 <section class="section">
   <div class="wrap cols">
@@ -657,7 +644,7 @@ def page_about():
     </div>
   </div>
 </section>
-<section class="section section-alt">
+<section class="section tint">
   <div class="wrap">
 {doc_block()}
   </div>
@@ -670,21 +657,21 @@ def page_about():
 
 
 def page_contact():
-    body = page_head("İletişim", "Temizlik ihtiyacınız için bize ulaşın",
+    body = page_head("İletişim", "Bize ulaşın",
                      "Telefon, WhatsApp veya e-posta ile yazın. Teklif ücretsizdir.") + f"""
 <section class="section">
-  <div class="wrap cols">
+  <div class="wrap quote-wrap">
     <div>
       <h2>İletişim bilgileri</h2>
       <ul class="contact-list">
-        <li><a href="tel:{PHONE_TEL}"><span class="ci">{icon("phone")}</span><div><span>Telefon</span><strong>{PHONE_DISPLAY}</strong></div></a></li>
-        <li><a href="{wa()}" target="_blank" rel="noopener"><span class="ci">{icon("wa")}</span><div><span>WhatsApp</span><strong>Mesaj gönderin</strong></div></a></li>
-        <li><a href="mailto:{EMAIL}"><span class="ci">{icon("mail")}</span><div><span>E-posta</span><strong>{EMAIL}</strong></div></a></li>
-        <li><div><span class="ci">{icon("map")}</span><div><span>Hizmet alanı</span><strong>İstanbul'un 39 ilçesi</strong></div></div></li>
+        <li><a href="tel:{PHONE_TEL}"><span class="ci">{icon("phone")}</span><span><span class="k">Telefon</span><strong>{PHONE_DISPLAY}</strong></span></a></li>
+        <li><a href="{wa()}" target="_blank" rel="noopener"><span class="ci">{icon("wa")}</span><span><span class="k">WhatsApp</span><strong>Mesaj gönderin</strong></span></a></li>
+        <li><a href="mailto:{EMAIL}"><span class="ci">{icon("mail")}</span><span><span class="k">E-posta</span><strong>{EMAIL}</strong></span></a></li>
+        <li><div class="row"><span class="ci">{icon("map")}</span><span><span class="k">Hizmet alanı</span><strong>İstanbul'un 39 ilçesi</strong></span></div></li>
       </ul>
-      <p style="margin-top:1.5rem" class="muted">Teklifi hızlandırmak için alanın fotoğraflarını veya kısa bir videosunu WhatsApp'tan gönderebilirsiniz.</p>
+      <p class="soft" style="margin-top:1.5rem">Teklifi hızlandırmak için alanın fotoğraflarını veya kısa bir videosunu WhatsApp'tan gönderebilirsiniz.</p>
     </div>
-    {quote_form("Teklif formu", "Bilgileri seçin, mesajınız WhatsApp'ta hazır açılsın.", "teklif-iletisim")}
+    {quote_form("Teklif formu", "Seçimlerinizle mesajınız WhatsApp'ta hazır açılır.", "teklif-iletisim", "h2")}
   </div>
 </section>
 """
@@ -698,18 +685,16 @@ def page_contact():
 def page_404():
     body = f"""<section class="section notfound">
   <div class="wrap">
-    <h1>Bu sayfa bulunamadı</h1>
+    <h1><span class="mega">Oh!</span>Bu sayfa bulunamadı</h1>
     <p class="lead">Aradığınız sayfa taşınmış veya kaldırılmış olabilir. Ana sayfadan devam edebilir ya da bize doğrudan yazabilirsiniz.</p>
     <div class="btn-row">
-      <a class="btn btn-primary" href="/">Ana sayfaya dönün</a>
+      <a class="btn btn-civit" href="/">Ana sayfaya dönün</a>
       <a class="btn btn-wa" href="{wa()}" target="_blank" rel="noopener">{icon("wa")}WhatsApp'tan yazın</a>
     </div>
   </div>
 </section>
 """
-    h = head("Sayfa bulunamadı | OH Temizlik", "Aradığınız sayfa bulunamadı.", "404.html")
-    h = h.replace("<head>\n", '<head>\n<meta name="robots" content="noindex">\n', 1)
-    return h + header("") + body + footer()
+    return head("Sayfa bulunamadı | OH Temizlik", "Aradığınız sayfa bulunamadı.", "404.html", noindex=True) + header("") + body + footer()
 
 
 PAGES = {
@@ -734,7 +719,6 @@ def main():
     (ROOT / "sitemap.xml").write_text("\n".join(sitemap) + "\n", encoding="utf-8")
     (ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE_URL}/sitemap.xml\n", encoding="utf-8")
     (ROOT / "CNAME").write_text("ohtemizlik.com\n", encoding="utf-8")
-    (ROOT / "assets/img/favicon.svg").write_text(LOGO.replace('aria-hidden="true"', 'xmlns="http://www.w3.org/2000/svg"'), encoding="utf-8")
     print("Sayfalar üretildi:", ", ".join(PAGES))
 
 
